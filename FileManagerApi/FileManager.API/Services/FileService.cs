@@ -1,15 +1,6 @@
-﻿using System.Web;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FileManagerApi.Models;
-using FileManagerAPI.DAL;
+﻿using FileManagerAPI.DAL;
 using FileManagerAPI.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 namespace FileManagerApi.Service
 {
@@ -23,14 +14,18 @@ namespace FileManagerApi.Service
             _logger = logger;
         }
 
+        /// <summary>
+        /// Deleting a file from the database
+        /// </summary>
+        /// <param name="id">File Guid</param>
         public async Task<bool> DeleteFile(Guid id)
         {
             try
             {
-                var file =  await _db.Files.FirstOrDefaultAsync(x => x.Id == id);
+                var file = await _db.Files.FirstOrDefaultAsync(x => x.Id == id);
                 if (file == null)
-                    return false;   
-                
+                    return false;
+
                 _db.Files.Remove(file);
                 await _db.SaveChangesAsync();
                 return true;
@@ -42,15 +37,19 @@ namespace FileManagerApi.Service
             }
         }
 
-
-        public async Task<string> GenerateLink(Guid id)
+        /// <summary>
+        /// Generating a link, assigning it to the selected file, and returning it to the client
+        /// </summary>
+        /// <param name="id">File Guid</param>
+        /// <returns>String or null</returns>
+        public async Task<string?> GenerateLink(Guid id)
         {
             try
             {
                 var file = await _db.Files.FirstOrDefaultAsync(x => x.Id == id);
                 if (file == null)
-                    return "File not found!";
-                
+                    return null;
+
                 file.ShortLink = RandomString(7);
 
                 await _db.SaveChangesAsync();
@@ -59,23 +58,30 @@ namespace FileManagerApi.Service
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
-                return "Error";
+                return null;
             }
         }
 
-        public async Task<List<FileDTO>> GetAllInfo()
+        /// <summary>
+        /// Function returns the list of all files on the server
+        /// </summary>
+        public async Task<List<FileInfoDTO>> GetAllInfo()
         {
-            return await _db.Files.Select(x => new FileDTO()
-                {
-                    Id = x.Id,
-                    FileName = x.FileName,
-                    TimeUpload = x.TimeUpload,
-                    ShortLink = x.ShortLink
-                })
+            return await _db.Files.Select(x => new FileInfoDTO()
+            {
+                Id = x.Id,
+                FileName = x.FileName,
+                TimeUpload = x.TimeUpload,
+                ShortLink = x.ShortLink
+            })
                 .ToListAsync();
         }
 
-        public async Task<FileValue?> GetFileByLink(string link)
+        /// <summary>
+        /// Returning the file from server to the client by a short link
+        /// </summary>
+        /// <param name="link">Short link</param>
+        public async Task<FileDTO?> GetFileByLink(string link)
         {
             try
             {
@@ -85,7 +91,7 @@ namespace FileManagerApi.Service
                 file.ShortLink = null;
 
                 await _db.SaveChangesAsync();
-                return new FileValue()
+                return new FileDTO()
                 {
                     Value = new MemoryStream(file.Data),
                     Name = file.FileName
@@ -98,6 +104,10 @@ namespace FileManagerApi.Service
             }
         }
 
+        /// <summary>
+        /// Saving all received files to the database
+        /// </summary>
+        /// <param name="files">Collection of one or more files to upload</param>
         public async Task<bool> UploadFile(IEnumerable<IFormFile> files)
         {
             try
@@ -106,7 +116,7 @@ namespace FileManagerApi.Service
                 {
                     using MemoryStream ms = new MemoryStream();
                     await file.CopyToAsync(ms);
-                    FileModel fileModel = new FileModel()
+                    FileEntity fileModel = new FileEntity()
                     {
                         Id = Guid.NewGuid(),
                         FileName = file.FileName,
@@ -125,6 +135,12 @@ namespace FileManagerApi.Service
                 return false;
             }
         }
+
+        /// <summary>
+        /// Generating a random string of specified length
+        /// </summary>
+        /// <param name="length">Length of generated string</param>
+        /// <returns>Generated string</returns>
         private string RandomString(int length)
         {
             Random random = new Random();

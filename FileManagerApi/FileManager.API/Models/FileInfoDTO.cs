@@ -1,15 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace FileManagerApi.Models
+﻿namespace FileManagerAPI.Models
 {
-    public class FileModel
+    public class FileInfoDTO
     {
-        [Key]
         public Guid Id { get; set; }
         public string FileName { get; set; } = string.Empty;
-        public byte[] Data { get; set; }
         public DateTime TimeUpload { get; set; }
         public string? ShortLink { get; set; }
-
     }
 }
